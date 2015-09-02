@@ -30,7 +30,7 @@ namespace VisualTraclus {
 
 			Console.WriteLine ("GroupingPhase");
 			var c = new LineSegmentClustering (ls);
-			c.Cluster ();
+			c.GenerateCluster ();
 
         }
 

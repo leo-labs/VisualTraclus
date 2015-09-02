@@ -16,6 +16,12 @@ namespace VisualTraclus
 		private const int MIN_DENSITY = 8;
 		private IEnumerable<IEnumerable<Coordinate>> lineSegments;
 
+		public struct Cluster {
+			public int clusterId;
+			public ICollection<IEnumerable<Coordinate>> lineSegments;
+		}
+
+
 		public LineSegmentClustering(IEnumerable<IEnumerable<Coordinate>> lineSegments) {
 			//classifyStatus = new Dictionary<IEnumerable<Coordinate>, bool> ();
 			noise = new List<IEnumerable<Coordinate>> ();
@@ -24,13 +30,14 @@ namespace VisualTraclus
 			this.lineSegments = lineSegments;
 		}
 
-		public void Cluster() {
+		public IEnumerable<Cluster> GenerateCluster() {
 			int clusterId = 0;
 
 			int progress = 0;
 			foreach (IEnumerable<Coordinate> lineSegement in lineSegments) {
 				if (!clusterIds.ContainsKey(lineSegement)) {
 					var neighborHood = epsilonNeighborhood (lineSegement);
+					Console.WriteLine("Neighborhood.Count = " + neighborHood.Count());
 					if (neighborHood.Count() >= MIN_DENSITY) {
 						foreach (IEnumerable<Coordinate> neighbor in neighborHood) {
 							clusterIds [neighbor] = clusterId;
@@ -54,11 +61,13 @@ namespace VisualTraclus
 
 			// step 3
 			//List<ICollection<IEnumerable<Coordinate>>> cluster = new List<IEnumerable<Coordinate>>(clusterId + 1);
-			var clusters = clusterIds.GroupBy(kvp => kvp.Value, x => x.Key, (key, z) => new { clusterId = key, lineSegments = z.ToList()});
-			clusters.ToList ();
+			var clusters = clusterIds.GroupBy(kvp => kvp.Value, x => x.Key, (key, z) => new Cluster { clusterId = key, lineSegments = z.ToList()});
+
+			// Filter by count of participating trajectories
+			clusters = clusters.Where(c => c.lineSegments.Count() < MIN_DENSITY).ToList();
 
 			Console.WriteLine ("clustered");
-			// TODO
+			return clusters;
 		}
 
 		private void expandCluster(Queue<IEnumerable<Coordinate>> queue, int clusterId) {
@@ -67,12 +76,11 @@ namespace VisualTraclus
 				var neighborHood = this.epsilonNeighborhood (head);
 				if (neighborHood.Count () >= MIN_DENSITY) {
 					foreach (var lineSegment in neighborHood) {
-						if(clusterIds.ContainsKey(lineSegment) || noise.Contains(lineSegment)){
-							if(clusterIds.ContainsKey(lineSegment)) {
+						if(!clusterIds.ContainsKey(lineSegment) || noise.Contains(lineSegment)){
+							if(!clusterIds.ContainsKey(lineSegment)) {
 								queue.Enqueue(lineSegment);
 							}
 							clusterIds [lineSegment] = clusterId;
-
 						}
 					
 					}
