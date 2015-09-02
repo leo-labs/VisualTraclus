@@ -96,7 +96,7 @@ namespace VisualTraclus {
 			return encodingCost;
 		}
 
-		private static double euclidianDistance(Vector3D v1, Vector3D v2) {
+		public static double euclidianDistance(Vector3D v1, Vector3D v2) {
 
 			/*int radiusEarth = 6371;
 
@@ -120,8 +120,19 @@ namespace VisualTraclus {
 			// we assume that the first line segment is longer than the second one
 
 			// distance to cluster component
-			double distanceFromStart = distanceFromPointToLineSegment(start1, end1, start2);
-			double distanceFromEnd = distanceFromPointToLineSegment(start1, end1, end2);
+			double length1 = euclidianDistance(start1.Vector, end1.Vector);
+			double length2 = euclidianDistance(start2.Vector, end2.Vector);
+
+			double distanceFromStart;
+			double distanceFromEnd;
+			if (length1 > length2) {
+				distanceFromStart = DistanceFromPointToLineSegment(start1, end1, start2);
+				distanceFromEnd = DistanceFromPointToLineSegment(start1, end1, end2);
+			} else {
+				distanceFromStart = DistanceFromPointToLineSegment(start2, end2, start1);
+				distanceFromEnd = DistanceFromPointToLineSegment(start2, end2, end1);
+			}
+
 
 			// if the first line segment is exactly the same as the second one, the perpendicular distance should be zero
 			if (distanceFromStart == 0.0 && distanceFromEnd == 0.0) 
@@ -133,9 +144,19 @@ namespace VisualTraclus {
 		}
 
 		private static double angleDistance(Coordinate start1, Coordinate end1, Coordinate start2, Coordinate end2) {
-			var vector1 = end1.Vector - start1.Vector;
-			var vector2 = end2.Vector - start2.Vector;
 
+			double length1 = euclidianDistance(start1.Vector, end1.Vector);
+			double length2 = euclidianDistance(start2.Vector, end2.Vector);
+
+			Vector3D vector1, vector2;
+
+			if(length1 > length2) {
+				vector1 = end1.Vector - start1.Vector;
+				vector2 = end2.Vector - start2.Vector;
+			} else {
+				vector2 = end1.Vector - start1.Vector;
+				vector1 = end2.Vector - start2.Vector;
+			}
 
 			var theta = vector1.AngleTo (vector2);
 			if (theta >= Angle.FromDegrees (0) && theta <= Angle.FromDegrees (90)) {
@@ -144,7 +165,7 @@ namespace VisualTraclus {
 			return vector2.Length;
 		}
 
-		private static double distanceFromPointToLineSegment(Coordinate start, Coordinate end, Coordinate p) {
+		public static double DistanceFromPointToLineSegment(Coordinate start, Coordinate end, Coordinate p) {
 			Vector3D projection = projectionOfPointToLineSegment (start, end, p);
 			return euclidianDistance(p.Vector, projection);
 		}
@@ -156,8 +177,6 @@ namespace VisualTraclus {
 			// a coefficient (0 <= b <= 1)
 			//m_coefficient = ComputeInnerProduct (&m_vector1, &m_vector2) / ComputeInnerProduct (&m_vector2, &m_vector2);
 			double coeff = vector1.DotProduct(vector2) / vector2.DotProduct(vector2);
-
-
 
 			// the projection on the cluster component from a given point	
 			// NOTE: the variable m_projectionPoint is declared as a member variable
@@ -173,21 +192,42 @@ namespace VisualTraclus {
 		private const double WEIGHT_PARALLEL = 1.0d;
 		private const double WEIGHT_ANGLE = 1.0d;
 
+
 		public static double DistanceBetweenLineSegments(IEnumerable<Coordinate> linesegment1, IEnumerable<Coordinate> linesegment2) {
 			double perpendicularDist =  WEIGHT_PERPENIDCULAR * perpendicularDistance (linesegment1.First(), linesegment1.Last(), linesegment2.First(), linesegment2.Last());
 			double parallelDist = WEIGHT_PARALLEL * parallelDistance (linesegment1, linesegment2);
 			double angleDist = WEIGHT_ANGLE * angleDistance(linesegment1.First(), linesegment1.Last(), linesegment2.First(), linesegment2.Last());
+		
+			Console.WriteLine("PerpendicularDistance: " + perpendicularDist);
+			Console.WriteLine("ParallelDistance: " + parallelDist);
+			Console.WriteLine("AngleDistance: " + angleDist);
 
 			return perpendicularDist + parallelDist + angleDist;
 		}
 
 		private static double parallelDistance(IEnumerable<Coordinate> linesegment1, IEnumerable<Coordinate> linesegment2) {
-			var projectionStartOnLineSegment2 = projectionOfPointToLineSegment (linesegment2.First(), linesegment2.Last(), linesegment1.First());
-			var projectionEndOnLineSegment2 = projectionOfPointToLineSegment (linesegment2.First(), linesegment2.Last(), linesegment1.Last());
+			var start1 = linesegment1.First();
+			var start2 = linesegment2.First();
+			var end1 = linesegment1.Last();
+			var end2 = linesegment2.Last();
 
-			double parallelDist1 = Math.Min (euclidianDistance (projectionStartOnLineSegment2, linesegment2.First().Vector), euclidianDistance (projectionStartOnLineSegment2, linesegment2.Last().Vector)); 
-			double parallelDist2 = Math.Min (euclidianDistance (projectionEndOnLineSegment2, linesegment2.First().Vector), euclidianDistance (projectionEndOnLineSegment2, linesegment2.Last().Vector)); 
+			double length1 = euclidianDistance(start1.Vector, end1.Vector);
+			double length2 = euclidianDistance(start2.Vector, end2.Vector);
 
+			double parallelDist1, parallelDist2;
+
+			if (length1 > length2) {
+				var projection1 = projectionOfPointToLineSegment(start1, end1, start2);
+				var projection2 = projectionOfPointToLineSegment(start1, end1, end2);
+				parallelDist1 = Math.Min (euclidianDistance (projection1, start1.Vector), euclidianDistance (projection1, end1.Vector)); 
+				parallelDist2 = Math.Min (euclidianDistance (projection2, start1.Vector), euclidianDistance (projection2, end1.Vector)); 
+
+			} else {
+				var projection1 = projectionOfPointToLineSegment(start2, end2, start1);
+				var	projection2 = projectionOfPointToLineSegment(start2, end2, end1);
+				parallelDist1 = Math.Min (euclidianDistance (projection1, start2.Vector), euclidianDistance (projection1, end2.Vector)); 
+				parallelDist2 = Math.Min (euclidianDistance (projection2, start2.Vector), euclidianDistance (projection2, end2.Vector)); 
+			}
 			return Math.Min(parallelDist1, parallelDist2);
 		}
 

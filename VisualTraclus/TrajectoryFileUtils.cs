@@ -65,14 +65,14 @@ namespace VisualTraclus {
 			using(var stream = new System.IO.FileStream(filePath, FileMode.CreateNew)) {
 				using(var writer = new System.IO.StreamWriter(stream)) {
 						
-					writer.WriteLine("3");
+					writer.WriteLine("2");
 					writer.WriteLine(trajectories.Count);
 
 					int index = 0;
 					foreach(var trajectory in trajectories) {
 						writer.Write(index);
 						foreach(var coordinate in trajectory.Coordinates) {
-							writer.Write(" " + coordinate.X + " " + coordinate.Y + " " + coordinate.Z);
+							writer.Write(" " + Math.Ceiling(coordinate.X) + " " + Math.Ceiling(coordinate.Y));
 						}
 						writer.WriteLine();
 						index++;

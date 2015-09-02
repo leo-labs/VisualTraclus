@@ -12,8 +12,8 @@ namespace VisualTraclus
 
 		private Dictionary<IEnumerable<Coordinate>, int> clusterIds;
 
-		private const double EPSILON = 2;
-		private const int MIN_DENSITY = 3;
+		private const double EPSILON = 20.0;
+		private const int MIN_DENSITY = 8;
 		private IEnumerable<IEnumerable<Coordinate>> lineSegments;
 
 		public LineSegmentClustering(IEnumerable<IEnumerable<Coordinate>> lineSegments) {
@@ -27,9 +27,6 @@ namespace VisualTraclus
 		public void Cluster() {
 			int clusterId = 0;
 
-			/* foreach (IEnumerable<Coordinate> lineSegement in lineSegments) {
-				classifyStatus[lineSegement] = false;
-			}*/
 			int progress = 0;
 			foreach (IEnumerable<Coordinate> lineSegement in lineSegments) {
 				if (!clusterIds.ContainsKey(lineSegement)) {
@@ -85,6 +82,8 @@ namespace VisualTraclus
 		}
 
 		private IEnumerable<IEnumerable<Coordinate>> epsilonNeighborhood (IEnumerable<Coordinate> lineSegment) {
+			var tr = lineSegments.Select(l => Algorithm.DistanceBetweenLineSegments(l, lineSegment));
+			var mean = tr.Average();
 			return lineSegments.Where (l => Algorithm.DistanceBetweenLineSegments (l, lineSegment) <= EPSILON);
 		}
 
