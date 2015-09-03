@@ -30,8 +30,11 @@ namespace VisualTraclus {
 
 			Console.WriteLine ("GroupingPhase");
 			var c = new LineSegmentClustering (ls);
-			c.GenerateCluster ();
+			var clusters = c.GenerateCluster ();
 
+			double gamma = 0;
+			var r = clusters.Select(cl => RepresentativeTrajectoryGenerator.RepresentativeTrajectory(cl, 2.0d, gamma)).ToList();
+			Console.WriteLine("represented");
         }
 
 		static void GenerateTrajFile() {

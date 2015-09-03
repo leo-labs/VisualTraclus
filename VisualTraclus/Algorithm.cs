@@ -170,7 +170,7 @@ namespace VisualTraclus {
 			return euclidianDistance(p.Vector, projection);
 		}
 
-		private static Vector3D projectionOfPointToLineSegment(Coordinate lineSegmentStart, Coordinate lineSegmentEnd, Coordinate point) {
+		public static Vector3D projectionOfPointToLineSegment(Coordinate lineSegmentStart, Coordinate lineSegmentEnd, Coordinate point) {
 			var vector1 = point.Vector - lineSegmentStart.Vector;
 			var vector2 = lineSegmentEnd.Vector - lineSegmentStart.Vector;
 

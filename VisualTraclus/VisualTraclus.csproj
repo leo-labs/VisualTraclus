@@ -52,6 +52,7 @@
     <Compile Include="Algorithm.cs" />
     <Compile Include="LineSegmentClustering.cs" />
     <Compile Include="TrajectoryFileUtils.cs" />
+    <Compile Include="RepresentativeTrajectoryGenerator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
