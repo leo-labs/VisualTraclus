@@ -36,9 +36,9 @@ namespace VisualTraclus {
 			}
 			cw++;
 
-			Console.WriteLine("Progress: Trajectory " + cw + "/100000");
+			//Console.WriteLine("Progress: Trajectory " + cw + "/100000");
 
-			return characteristicPoints;
+			return characteristicPoints.Distinct();
 
 		}
 
@@ -79,8 +79,8 @@ namespace VisualTraclus {
 				Coordinate startSegment = trajectory.Coordinates.ElementAt (i);
 				Coordinate endSegment = trajectory.Coordinates.ElementAt (i + 1);
 
-				perpendicularDist = perpendicularDistance(startComponent, endComponent, startSegment, endSegment);
-				angleDist = angleDistance(startComponent, endComponent, startSegment, endSegment);
+				perpendicularDist = perpendicularDistance(startComponent.Vector, endComponent.Vector, startSegment.Vector, endSegment.Vector);
+				angleDist = angleDistance(startComponent.Vector, endComponent.Vector, startSegment.Vector, endSegment.Vector);
 
 				if (perpendicularDist< 1.0) 
 					perpendicularDist = 1.0f;
@@ -115,13 +115,13 @@ namespace VisualTraclus {
 			//return Distance.Euclidean (x.Vector.ToPoint3D, y.Vector.ToPoint3D);
 		}
 
-		private static double perpendicularDistance(Coordinate start1, Coordinate end1, Coordinate start2, Coordinate end2) {
+		private static double perpendicularDistance(Vector3D start1, Vector3D end1, Vector3D start2, Vector3D end2) {
 
 			// we assume that the first line segment is longer than the second one
 
 			// distance to cluster component
-			double length1 = euclidianDistance(start1.Vector, end1.Vector);
-			double length2 = euclidianDistance(start2.Vector, end2.Vector);
+			double length1 = euclidianDistance(start1, end1);
+			double length2 = euclidianDistance(start2, end2);
 
 			double distanceFromStart;
 			double distanceFromEnd;
@@ -143,19 +143,19 @@ namespace VisualTraclus {
 
 		}
 
-		private static double angleDistance(Coordinate start1, Coordinate end1, Coordinate start2, Coordinate end2) {
+		private static double angleDistance(Vector3D start1, Vector3D end1, Vector3D start2, Vector3D end2) {
 
-			double length1 = euclidianDistance(start1.Vector, end1.Vector);
-			double length2 = euclidianDistance(start2.Vector, end2.Vector);
+			double length1 = euclidianDistance(start1, end1);
+			double length2 = euclidianDistance(start2, end2);
 
 			Vector3D vector1, vector2;
 
 			if(length1 > length2) {
-				vector1 = end1.Vector - start1.Vector;
-				vector2 = end2.Vector - start2.Vector;
+				vector1 = end1 - start1;
+				vector2 = end2 - start2;
 			} else {
-				vector2 = end1.Vector - start1.Vector;
-				vector1 = end2.Vector - start2.Vector;
+				vector2 = end1 - start1;
+				vector1 = end2 - start2;
 			}
 
 			var theta = vector1.AngleTo (vector2);
@@ -165,14 +165,14 @@ namespace VisualTraclus {
 			return vector2.Length;
 		}
 
-		public static double DistanceFromPointToLineSegment(Coordinate start, Coordinate end, Coordinate p) {
+		public static double DistanceFromPointToLineSegment(Vector3D start, Vector3D end, Vector3D p) {
 			Vector3D projection = projectionOfPointToLineSegment (start, end, p);
-			return euclidianDistance(p.Vector, projection);
+			return euclidianDistance(p, projection);
 		}
 
-		public static Vector3D projectionOfPointToLineSegment(Coordinate lineSegmentStart, Coordinate lineSegmentEnd, Coordinate point) {
-			var vector1 = point.Vector - lineSegmentStart.Vector;
-			var vector2 = lineSegmentEnd.Vector - lineSegmentStart.Vector;
+		public static Vector3D projectionOfPointToLineSegment(Vector3D lineSegmentStart, Vector3D lineSegmentEnd, Vector3D point) {
+			var vector1 = point - lineSegmentStart;
+			var vector2 = lineSegmentEnd - lineSegmentStart;
 
 			// a coefficient (0 <= b <= 1)
 			//m_coefficient = ComputeInnerProduct (&m_vector1, &m_vector2) / ComputeInnerProduct (&m_vector2, &m_vector2);
@@ -183,7 +183,7 @@ namespace VisualTraclus {
 
 			//for (int i = 0; i < nDimensions; i++)
 			//	m_projectionPoint.SetCoordinate (i, s->GetCoordinate (i) + m_coefficient * m_vector2.GetCoordinate (i));
-			var projection = lineSegmentStart.Vector + coeff * vector2;
+			var projection = lineSegmentStart + coeff * vector2;
 			return projection;
 		}
 
@@ -193,44 +193,54 @@ namespace VisualTraclus {
 		private const double WEIGHT_ANGLE = 1.0d;
 
 
-		public static double DistanceBetweenLineSegments(IEnumerable<Coordinate> linesegment1, IEnumerable<Coordinate> linesegment2) {
-			double perpendicularDist =  WEIGHT_PERPENIDCULAR * perpendicularDistance (linesegment1.First(), linesegment1.Last(), linesegment2.First(), linesegment2.Last());
+		public static double DistanceBetweenLineSegments(LineSegment linesegment1, LineSegment linesegment2) {
+			double perpendicularDist =  WEIGHT_PERPENIDCULAR * perpendicularDistance (linesegment1.start, linesegment1.end, linesegment2.start, linesegment2.end);
 			double parallelDist = WEIGHT_PARALLEL * parallelDistance (linesegment1, linesegment2);
-			double angleDist = WEIGHT_ANGLE * angleDistance(linesegment1.First(), linesegment1.Last(), linesegment2.First(), linesegment2.Last());
+			double angleDist = WEIGHT_ANGLE * angleDistance(linesegment1.start, linesegment1.end, linesegment2.start, linesegment2.end);
 		
-			Console.WriteLine("PerpendicularDistance: " + perpendicularDist);
-			Console.WriteLine("ParallelDistance: " + parallelDist);
-			Console.WriteLine("AngleDistance: " + angleDist);
+			//Console.WriteLine("PerpendicularDistance: " + perpendicularDist);
+			//Console.WriteLine("ParallelDistance: " + parallelDist);
+			//Console.WriteLine("AngleDistance: " + angleDist);
 
 			return perpendicularDist + parallelDist + angleDist;
 		}
 
-		private static double parallelDistance(IEnumerable<Coordinate> linesegment1, IEnumerable<Coordinate> linesegment2) {
-			var start1 = linesegment1.First();
-			var start2 = linesegment2.First();
-			var end1 = linesegment1.Last();
-			var end2 = linesegment2.Last();
+		private static double parallelDistance(LineSegment linesegment1, LineSegment linesegment2) {
+			var start1 = linesegment1.start;
+			var start2 = linesegment2.start;
+			var end1 = linesegment1.end;
+			var end2 = linesegment2.end;
 
-			double length1 = euclidianDistance(start1.Vector, end1.Vector);
-			double length2 = euclidianDistance(start2.Vector, end2.Vector);
+			double length1 = euclidianDistance(start1, end1);
+			double length2 = euclidianDistance(start2, end2);
 
 			double parallelDist1, parallelDist2;
 
 			if (length1 > length2) {
 				var projection1 = projectionOfPointToLineSegment(start1, end1, start2);
 				var projection2 = projectionOfPointToLineSegment(start1, end1, end2);
-				parallelDist1 = Math.Min (euclidianDistance (projection1, start1.Vector), euclidianDistance (projection1, end1.Vector)); 
-				parallelDist2 = Math.Min (euclidianDistance (projection2, start1.Vector), euclidianDistance (projection2, end1.Vector)); 
+				parallelDist1 = Math.Min (euclidianDistance (projection1, start1), euclidianDistance (projection1, end1)); 
+				parallelDist2 = Math.Min (euclidianDistance (projection2, start1), euclidianDistance (projection2, end1)); 
 
 			} else {
 				var projection1 = projectionOfPointToLineSegment(start2, end2, start1);
 				var	projection2 = projectionOfPointToLineSegment(start2, end2, end1);
-				parallelDist1 = Math.Min (euclidianDistance (projection1, start2.Vector), euclidianDistance (projection1, end2.Vector)); 
-				parallelDist2 = Math.Min (euclidianDistance (projection2, start2.Vector), euclidianDistance (projection2, end2.Vector)); 
+				parallelDist1 = Math.Min (euclidianDistance (projection1, start2), euclidianDistance (projection1, end2)); 
+				parallelDist2 = Math.Min (euclidianDistance (projection2, start2), euclidianDistance (projection2, end2)); 
 			}
 			return Math.Min(parallelDist1, parallelDist2);
 		}
 
+
+		public static IEnumerable<LineSegment> EpsilonNeighborhood (IEnumerable<LineSegment> lineSegments, LineSegment lineSegment, double epsilon) {
+			//var tr = lineSegments.Select(l => Algorithm.DistanceBetweenLineSegments(l, lineSegment));
+			//var mean = tr.Average();
+			return lineSegments.Where (l => Algorithm.DistanceBetweenLineSegments (l, lineSegment) <= epsilon);
+		}
+
+		public static double DegreesToRadians(double angle) {
+			return angle * Math.PI / 180.0;
+		}
 	}
 
 

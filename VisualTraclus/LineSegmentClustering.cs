@@ -8,42 +8,44 @@ namespace VisualTraclus
 	public class LineSegmentClustering
 	{
 		//private Dictionary<IEnumerable<Coordinate>, bool> classifyStatus;
-		private List<IEnumerable<Coordinate>> noise;
+		private List<LineSegment> noise;
 
-		private Dictionary<IEnumerable<Coordinate>, int> clusterIds;
+		private Dictionary<LineSegment, int> clusterIds;
 
-		private const double EPSILON = 20.0;
-		private const int MIN_DENSITY = 8;
-		private IEnumerable<IEnumerable<Coordinate>> lineSegments;
+		private double epsilon; 
+		private int minLns; 
+		private IEnumerable<LineSegment> lineSegments;
 
 		public struct Cluster {
 			public int clusterId;
-			public ICollection<IEnumerable<Coordinate>> lineSegments;
+			public IList<LineSegment> lineSegments;
 		}
 
 
-		public LineSegmentClustering(IEnumerable<IEnumerable<Coordinate>> lineSegments) {
+		public LineSegmentClustering(IEnumerable<LineSegment> lineSegments, double epsilon, int minLns) {
 			//classifyStatus = new Dictionary<IEnumerable<Coordinate>, bool> ();
-			noise = new List<IEnumerable<Coordinate>> ();
-			clusterIds = new Dictionary<IEnumerable<Coordinate>, int> ();
+			noise = new List<LineSegment> ();
+			clusterIds = new Dictionary<LineSegment, int> ();
 
 			this.lineSegments = lineSegments;
+			this.epsilon = epsilon;
+			this.minLns = minLns;
 		}
 
 		public IEnumerable<Cluster> GenerateCluster() {
 			int clusterId = 0;
 
 			int progress = 0;
-			foreach (IEnumerable<Coordinate> lineSegement in lineSegments) {
+			foreach (LineSegment lineSegement in lineSegments) {
 				if (!clusterIds.ContainsKey(lineSegement)) {
-					var neighborHood = epsilonNeighborhood (lineSegement);
+					var neighborHood = Algorithm.EpsilonNeighborhood (lineSegments, lineSegement, epsilon);
 					Console.WriteLine("Neighborhood.Count = " + neighborHood.Count());
-					if (neighborHood.Count() >= MIN_DENSITY) {
-						foreach (IEnumerable<Coordinate> neighbor in neighborHood) {
+					if (neighborHood.Count() >= minLns) {
+						foreach (LineSegment neighbor in neighborHood) {
 							clusterIds [neighbor] = clusterId;
 						}
-						Queue<IEnumerable<Coordinate>> queue = new Queue<IEnumerable<Coordinate>> ();
-						foreach(IEnumerable<Coordinate> lineSegment in neighborHood.Where(ls => ls != lineSegement)) {
+						Queue<LineSegment> queue = new Queue<LineSegment> ();
+						foreach(LineSegment lineSegment in neighborHood.Where(ls => ls != lineSegement)) {
 							queue.Enqueue(lineSegement);
 						}
 						expandCluster (queue, clusterId);
@@ -64,17 +66,18 @@ namespace VisualTraclus
 			var clusters = clusterIds.GroupBy(kvp => kvp.Value, x => x.Key, (key, z) => new Cluster { clusterId = key, lineSegments = z.ToList()});
 
 			// Filter by count of participating trajectories
-			clusters = clusters.Where(c => c.lineSegments.Count() < MIN_DENSITY).ToList();
+			clusters = clusters.Where(
+				c => c.lineSegments.Select(ls => ls.Id).Distinct().Count() < minLns).ToList();
 
 			Console.WriteLine ("clustered");
 			return clusters;
 		}
 
-		private void expandCluster(Queue<IEnumerable<Coordinate>> queue, int clusterId) {
+		private void expandCluster(Queue<LineSegment> queue, int clusterId) {
 			while(queue.Count() != 0) {
 				var head = queue.Dequeue();
-				var neighborHood = this.epsilonNeighborhood (head);
-				if (neighborHood.Count () >= MIN_DENSITY) {
+				var neighborHood = Algorithm.EpsilonNeighborhood (lineSegments, head, epsilon);
+				if (neighborHood.Count () >= minLns) {
 					foreach (var lineSegment in neighborHood) {
 						if(!clusterIds.ContainsKey(lineSegment) || noise.Contains(lineSegment)){
 							if(!clusterIds.ContainsKey(lineSegment)) {
@@ -88,12 +91,7 @@ namespace VisualTraclus
 			}
 
 		}
-
-		private IEnumerable<IEnumerable<Coordinate>> epsilonNeighborhood (IEnumerable<Coordinate> lineSegment) {
-			var tr = lineSegments.Select(l => Algorithm.DistanceBetweenLineSegments(l, lineSegment));
-			var mean = tr.Average();
-			return lineSegments.Where (l => Algorithm.DistanceBetweenLineSegments (l, lineSegment) <= EPSILON);
-		}
+			
 
 
 	}

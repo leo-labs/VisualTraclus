@@ -11,6 +11,7 @@ namespace VisualTraclus {
         public Trajectory() {
             
             Coordinates = new List<Coordinate>();
+			this.Id = nextId();
         }
 
         public int Count {
@@ -22,6 +23,11 @@ namespace VisualTraclus {
         }
 
 
+		private static int currentId = 0;
+		private static int nextId() {
 
+			return currentId++;
+
+		}
     }
 }

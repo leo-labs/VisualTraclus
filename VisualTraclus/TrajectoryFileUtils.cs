@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using MathNet.Spatial.Euclidean;
 
 namespace VisualTraclus {
 	public static class TrajectoryFileUtils {
@@ -21,8 +22,8 @@ namespace VisualTraclus {
 				var values = line.Split(sep, count:9);
 				trajectories.Add(TrajectoryFileUtils.ParseTrajectory(values[8]));
 				i++;
-				if (i % 10000 == 0)
-					Console.WriteLine (i);
+				//if (i % 10000 == 0)
+					//Console.WriteLine (i);
 			}
 
 			return trajectories;
@@ -80,6 +81,32 @@ namespace VisualTraclus {
 				}
 			}
 		}
+
+
+		public static void ExportClusters(List<IEnumerable<Point3D>> coordinates, string filePath) {
+
+			using(var stream = new System.IO.FileStream(filePath, FileMode.CreateNew)) {
+				using(var writer = new System.IO.StreamWriter(stream)) {
+
+
+					int index = 0;
+					foreach(var coordianteList in coordinates) {
+						writer.Write(index);
+						foreach(var coordinate in coordianteList) {
+							writer.Write(" " + RadianToDegree(Math.Asin(coordinate.Z / Coordinate.RADIUS_EARTH)) + " " + RadianToDegree(Math.Atan2(coordinate.Y, coordinate.X)));
+						}
+						writer.WriteLine();
+						index++;
+					}
+				}
+			}
+		}
+
+		public static double RadianToDegree(double angle)
+		{
+			return angle * (180.0 / Math.PI);
+		}
+
 			
 		/// <summary>
 		/// Tests if the euclidian norm is greater than the smallest possible positive value of an float.
